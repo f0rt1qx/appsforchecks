@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: #0D1629;
+    --bg-surface: #111827;
+    --bg-elevated: #1E2A3A;
+    --accent-primary: #3B82F6;
+    --accent-light: #60A5FA;
+    --success: #10B981;
+    --text-primary: #F1F5F9;
+    --text-muted: #64748B;
+  }
+  
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    @apply antialiased;
+  }
+}
+
+@layer utilities {
+  .smooth-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
