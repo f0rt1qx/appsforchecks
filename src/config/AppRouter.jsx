@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from '@/shared/ui/Layout';
+import { Layout } from '@/layouts/Layout';
 import { LoginPage } from '@/pages/Login';
 import { RegisterPage } from '@/pages/Register';
 import { DashboardPage } from '@/pages/Dashboard';

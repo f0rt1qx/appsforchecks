@@ -1,14 +1,6 @@
 import { StatusBadge } from '../StatusBadge';
 
-interface ReceiptRowProps {
-  id: string;
-  merchant: string;
-  date: string;
-  amount: number;
-  status: 'success' | 'pending' | 'error';
-}
-
-export const ReceiptRow = ({ merchant, date, amount, status }: ReceiptRowProps) => {
+export const ReceiptRow = ({ merchant, date, amount, status }) => {
   return (
     <div className="flex items-center justify-between p-4 border-b border-[rgba(255,255,255,0.07)] hover:bg-elevated smooth-transition">
       <div className="flex flex-col gap-1">

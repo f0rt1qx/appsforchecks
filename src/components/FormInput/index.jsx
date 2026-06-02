@@ -1,13 +1,7 @@
-import { InputHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-export const FormInput = ({ label, error, className, ...props }: FormInputProps) => {
+export const FormInput = ({ label, error, className, ...props }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label className="text-sm font-medium text-text-muted">{label}</label>

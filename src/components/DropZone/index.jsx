@@ -1,10 +1,6 @@
 import { UploadCloud } from 'lucide-react';
 
-interface DropZoneProps {
-  onFileDrop?: (file: File) => void;
-}
-
-export const DropZone = ({ onFileDrop }: DropZoneProps) => {
+export const DropZone = () => {
   return (
     <div className="border-2 border-dashed border-[rgba(255,255,255,0.2)] rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:bg-elevated/50 smooth-transition cursor-pointer group">
       <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white smooth-transition">
