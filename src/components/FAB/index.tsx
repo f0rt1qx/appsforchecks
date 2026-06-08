@@ -1,6 +1,10 @@
 import { Plus } from 'lucide-react';
 
-export const FAB = ({ onClick }) => {
+type FABProps = {
+  onClick?: () => void;
+};
+
+export const FAB = ({ onClick }: FABProps) => {
   return (
     <button
       onClick={onClick}

@@ -1,4 +1,11 @@
-export const StatCard = ({ title, value, trend, isPositive }) => {
+type StatCardProps = {
+  title: string;
+  value: string | number;
+  trend?: string;
+  isPositive?: boolean;
+};
+
+export const StatCard = ({ title, value, trend, isPositive = true }: StatCardProps) => {
   return (
     <div className="bg-surface border border-[rgba(255,255,255,0.07)] rounded-2xl p-6">
       <div className="text-text-muted font-medium mb-2">{title}</div>

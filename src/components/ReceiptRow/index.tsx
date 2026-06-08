@@ -1,6 +1,14 @@
 import { StatusBadge } from '../StatusBadge';
+import type { Status } from '../StatusBadge';
 
-export const ReceiptRow = ({ merchant, date, amount, status }) => {
+type ReceiptRowProps = {
+  merchant: string;
+  date: string;
+  amount: number;
+  status: Status;
+};
+
+export const ReceiptRow = ({ merchant, date, amount, status }: ReceiptRowProps) => {
   return (
     <div className="flex items-center justify-between p-4 border-b border-[rgba(255,255,255,0.07)] hover:bg-elevated smooth-transition">
       <div className="flex flex-col gap-1">

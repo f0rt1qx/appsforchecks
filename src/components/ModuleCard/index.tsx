@@ -1,4 +1,13 @@
-export const ModuleCard = ({ icon, title, description, onClick }) => {
+import type { ReactNode } from 'react';
+
+type ModuleCardProps = {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  onClick?: () => void;
+};
+
+export const ModuleCard = ({ icon, title, description, onClick }: ModuleCardProps) => {
   return (
     <div 
       onClick={onClick}
