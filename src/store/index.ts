@@ -1,12 +1,8 @@
 import { create } from 'zustand';
+import { mockDbService } from '@/services/mockDbService';
+import type { User } from '@/services/mockDbService';
 
-export type User = {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user';
-  createdAt: string;
-};
+export type { User } from '@/services/mockDbService';
 
 type LoginInput = {
   email: string;
@@ -37,21 +33,7 @@ type AppState = {
   logout: () => void;
 };
 
-const safeParseUser = (value: string | null): User | null => {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(value) as User;
-  } catch {
-    localStorage.removeItem('receipt-scanner-user');
-    return null;
-  }
-};
-
-const storedUser = safeParseUser(localStorage.getItem('receipt-scanner-user'));
-const storedToken = localStorage.getItem('receipt-scanner-token');
+const storedSession = mockDbService.getSession();
 
 export const MOCK_USER = {
   email: 'demo@receipt.app',
@@ -62,9 +44,9 @@ export const MOCK_USER = {
 const createFakeToken = () => `fake-token-${Date.now()}-${crypto.randomUUID()}`;
 
 export const useAppStore = create<AppState>((set) => ({
-  isAuthenticated: Boolean(storedUser && storedToken),
-  user: storedUser,
-  token: storedToken,
+  isAuthenticated: Boolean(storedSession),
+  user: storedSession?.user ?? null,
+  token: storedSession?.token ?? null,
   login: ({ email, password }) => {
     const isValidUser = email === MOCK_USER.email && password === MOCK_USER.password;
 
@@ -84,8 +66,7 @@ export const useAppStore = create<AppState>((set) => ({
       createdAt: new Date().toISOString(),
     };
 
-    localStorage.setItem('receipt-scanner-user', JSON.stringify(user));
-    localStorage.setItem('receipt-scanner-token', token);
+    mockDbService.saveSession({ user, token });
     set({ isAuthenticated: true, user, token });
 
     return { success: true };
@@ -100,8 +81,7 @@ export const useAppStore = create<AppState>((set) => ({
       createdAt: new Date().toISOString(),
     };
 
-    localStorage.setItem('receipt-scanner-user', JSON.stringify(user));
-    localStorage.setItem('receipt-scanner-token', token);
+    mockDbService.saveSession({ user, token });
     set({ isAuthenticated: true, user, token });
 
     return { success: true };
@@ -114,8 +94,7 @@ export const useAppStore = create<AppState>((set) => ({
         return state;
       }
 
-      updatedUser = { ...state.user, ...updates };
-      localStorage.setItem('receipt-scanner-user', JSON.stringify(updatedUser));
+      updatedUser = mockDbService.updateUser(updates);
 
       return { user: updatedUser };
     });
@@ -123,8 +102,7 @@ export const useAppStore = create<AppState>((set) => ({
     return { success: true, user: updatedUser };
   },
   logout: () => {
-    localStorage.removeItem('receipt-scanner-user');
-    localStorage.removeItem('receipt-scanner-token');
+    mockDbService.clearSession();
     set({ isAuthenticated: false, user: null, token: null });
   },
 }));
