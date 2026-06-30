@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, FileText, LineChart, ScanLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { FormInput } from '@/components/FormInput';
-import { useAppStore } from '@/store';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { emailValidator, nameValidator, passwordValidator, validateField } from '@/features/auth/utils/validators';
 
 type RegisterForm = {
   name: string;
@@ -38,32 +39,36 @@ const benefits: Benefit[] = [
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
-  const register = useAppStore((state) => state.register);
+  const { register } = useAuth();
   const [form, setForm] = useState<RegisterForm>({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof RegisterForm, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof RegisterForm | 'form', string>>>({});
 
   const updateField = (field: keyof RegisterForm) => (event: ChangeEvent<HTMLInputElement>) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
-    setErrors((current) => ({ ...current, [field]: '' }));
+    setErrors((current) => ({ ...current, [field]: '', form: '' }));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nextErrors: Partial<Record<keyof RegisterForm, string>> = {};
-    if (form.name.trim().length < 2) {
-      nextErrors.name = 'Введите имя';
+    const nameError = validateField(form.name, [nameValidator]);
+    const emailError = validateField(form.email, [emailValidator]);
+    const passwordError = validateField(form.password, [passwordValidator]);
+
+    if (nameError) {
+      nextErrors.name = nameError;
     }
-    if (!form.email.includes('@')) {
-      nextErrors.email = 'Введите корректный email';
+    if (emailError) {
+      nextErrors.email = emailError;
     }
-    if (form.password.length < 6) {
-      nextErrors.password = 'Минимум 6 символов';
+    if (passwordError) {
+      nextErrors.password = passwordError;
     }
     if (form.password !== form.confirmPassword) {
       nextErrors.confirmPassword = 'Пароли не совпадают';
@@ -72,8 +77,18 @@ export const RegisterPage = () => {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length === 0) {
-      register({ name: form.name.trim(), email: form.email });
-      navigate('/dashboard');
+      const result = register({
+        name: form.name.trim(),
+        email: form.email,
+        password: form.password,
+      });
+
+      if (result.success) {
+        navigate('/dashboard');
+        return;
+      }
+
+      setErrors({ form: result.error });
     }
   };
 
@@ -149,6 +164,11 @@ export const RegisterPage = () => {
             </div>
 
             <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+              {errors.form && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                  {errors.form}
+                </div>
+              )}
               <FormInput
                 label="Имя"
                 type="text"

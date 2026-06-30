@@ -128,7 +128,6 @@ export const DashboardPage = () => {
             <div>
               <h2 className="text-xl font-bold text-white">Последние чеки</h2>
               <p className="mt-1 text-sm text-text-muted">
-                Мок-данные для будущих результатов OCR-сканирования.
               </p>
             </div>
 

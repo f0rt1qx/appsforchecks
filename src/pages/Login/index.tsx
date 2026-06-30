@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LockKeyhole, ScanLine } from 'lucide-react';
 import { FormInput } from '@/components/FormInput';
-import { MOCK_USER, useAppStore } from '@/store';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { MOCK_USER } from '@/features/auth/store/auth.store';
+import { emailValidator, passwordValidator, validateField } from '@/features/auth/utils/validators';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const login = useAppStore((state) => state.login);
+  const { login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form | 'form', string>>>({});
 
@@ -20,11 +22,14 @@ export const LoginPage = () => {
     event.preventDefault();
 
     const nextErrors: Partial<Record<keyof typeof form, string>> = {};
-    if (!form.email.includes('@')) {
-      nextErrors.email = 'Введите корректный email';
+    const emailError = validateField(form.email, [emailValidator]);
+    const passwordError = validateField(form.password, [passwordValidator]);
+
+    if (emailError) {
+      nextErrors.email = emailError;
     }
-    if (form.password.length < 6) {
-      nextErrors.password = 'Минимум 6 символов';
+    if (passwordError) {
+      nextErrors.password = passwordError;
     }
 
     setErrors(nextErrors);

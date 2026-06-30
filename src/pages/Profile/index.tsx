@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarClock, LogOut, Mail, Save, UserRound } from 'lucide-react';
 import { FormInput } from '@/components/FormInput';
-import { useAppStore } from '@/store';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { emailValidator, nameValidator, validateField } from '@/features/auth/utils/validators';
 
 type ProfileForm = {
   name: string;
@@ -24,9 +25,7 @@ const formatDate = (date?: string) => {
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const user = useAppStore((state) => state.user);
-  const updateUser = useAppStore((state) => state.updateUser);
-  const logout = useAppStore((state) => state.logout);
+  const { user, updateUser, logout } = useAuth();
   const [form, setForm] = useState<ProfileForm>({
     name: user?.name ?? '',
     email: user?.email ?? '',
@@ -46,11 +45,14 @@ export const ProfilePage = () => {
     event.preventDefault();
 
     const nextErrors: Partial<Record<keyof ProfileForm, string>> = {};
-    if (form.name.trim().length < 2) {
-      nextErrors.name = 'Введите имя';
+    const nameError = validateField(form.name, [nameValidator]);
+    const emailError = validateField(form.email, [emailValidator]);
+
+    if (nameError) {
+      nextErrors.name = nameError;
     }
-    if (!form.email.includes('@')) {
-      nextErrors.email = 'Введите корректный email';
+    if (emailError) {
+      nextErrors.email = emailError;
     }
 
     setErrors(nextErrors);

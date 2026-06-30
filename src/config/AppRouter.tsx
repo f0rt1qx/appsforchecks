@@ -1,36 +1,12 @@
-import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { GuestRoute } from '@/components/GuestRoute';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/layouts/Layout';
 import { LoginPage } from '@/pages/Login';
 import { RegisterPage } from '@/pages/Register';
 import { DashboardPage } from '@/pages/Dashboard';
 import { ProfilePage } from '@/pages/Profile';
 import { ScannerPage } from '@/pages/Scanner';
-import { useAppStore } from '@/store';
-
-type RouteGuardProps = {
-  children: ReactNode;
-};
-
-const ProtectedRoute = ({ children }: RouteGuardProps) => {
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-const PublicRoute = ({ children }: RouteGuardProps) => {
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-};
 
 export const AppRouter = () => {
   return (
@@ -40,17 +16,17 @@ export const AppRouter = () => {
         <Route
           path="/login"
           element={
-            <PublicRoute>
+            <GuestRoute>
               <LoginPage />
-            </PublicRoute>
+            </GuestRoute>
           }
         />
         <Route
           path="/register"
           element={
-            <PublicRoute>
+            <GuestRoute>
               <RegisterPage />
-            </PublicRoute>
+            </GuestRoute>
           }
         />
         <Route

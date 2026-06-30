@@ -1,6 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, LogOut, Scan, User } from 'lucide-react';
-import { useAppStore } from '@/store';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 const navItems = [
   { path: '/dashboard', label: 'Дашборд', icon: <LayoutDashboard size={20} /> },
@@ -10,7 +10,13 @@ const navItems = [
 
 export const Sidebar = () => {
   const location = useLocation();
-  const logout = useAppStore((state) => state.logout);
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-white/[0.07] bg-surface lg:flex">
@@ -51,14 +57,24 @@ export const Sidebar = () => {
       </nav>
 
       <div className="border-t border-white/[0.07] p-4">
-        <Link
-          to="/login"
-          onClick={logout}
-          className="smooth-transition flex items-center gap-3 rounded-xl px-4 py-3 text-text-muted hover:bg-elevated/50 hover:text-white"
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-elevated/70 px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <User size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-white">{user?.name}</div>
+            <div className="text-xs text-text-muted">Аккаунт</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="smooth-transition flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-text-muted hover:bg-elevated/50 hover:text-white"
         >
           <LogOut size={20} />
           <span className="font-medium">Выйти</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

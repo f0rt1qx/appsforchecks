@@ -1,9 +1,12 @@
 import type { ChangeEvent } from 'react';
-import { useMemo, useState } from 'react';
-import { LoaderCircle, RotateCcw, Save, ScanText } from 'lucide-react';
-import Tesseract from 'tesseract.js';
+import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, LoaderCircle, RotateCcw, Save, ScanText } from 'lucide-react';
 import { DropZone } from '@/components/DropZone';
 import { FormInput } from '@/components/FormInput';
+import { ReceiptRow } from '@/components/ReceiptRow';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useReceiptsStore } from '@/features/scanner/store/receipts.store';
+import { ocrService } from '@/services/ocr.service';
 
 type OcrStatus = 'idle' | 'processing' | 'success' | 'error';
 
@@ -52,7 +55,13 @@ const createDraftFromText = (text: string): ReceiptDraft => ({
   category: 'Продукты',
 });
 
+const parseAmount = (amount: string) => Number(amount.replace(',', '.'));
+
 export const ScannerPage = () => {
+  const { user } = useAuth();
+  const receipts = useReceiptsStore((state) => state.receipts);
+  const addReceipt = useReceiptsStore((state) => state.addReceipt);
+  const loadReceipts = useReceiptsStore((state) => state.loadReceipts);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<OcrStatus>('idle');
@@ -60,15 +69,35 @@ export const ScannerPage = () => {
   const [rawText, setRawText] = useState('');
   const [draft, setDraft] = useState<ReceiptDraft>(initialDraft);
   const [error, setError] = useState('');
+  const [savedMessage, setSavedMessage] = useState('');
 
-  const canRunOcr = selectedFile && status !== 'processing';
-  const progressPercent = useMemo(() => Math.round(progress * 100), [progress]);
+  const amountValue = useMemo(() => parseAmount(draft.amount), [draft.amount]);
+  const canRunOcr = Boolean(selectedFile && status !== 'processing');
+  const canSaveReceipt = Boolean(
+    user &&
+      status === 'success' &&
+      draft.merchant.trim() &&
+      draft.date.trim() &&
+      draft.category.trim() &&
+      Number.isFinite(amountValue) &&
+      amountValue > 0
+  );
+
+  useEffect(() => {
+    if (user) {
+      loadReceipts(user.id);
+    }
+  }, [loadReceipts, user]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileSelect = (file: File) => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setStatus('idle');
@@ -76,6 +105,7 @@ export const ScannerPage = () => {
     setRawText('');
     setDraft(initialDraft);
     setError('');
+    setSavedMessage('');
   };
 
   const handleRecognize = async () => {
@@ -86,35 +116,45 @@ export const ScannerPage = () => {
     setStatus('processing');
     setProgress(0);
     setError('');
+    setSavedMessage('');
 
     try {
-      const result = await Tesseract.recognize(selectedFile, 'rus+eng', {
-        logger: (message) => {
-          if (message.status === 'recognizing text') {
-            setProgress(message.progress);
-          }
-        },
-      });
+      const text = await ocrService.recognize(selectedFile, setProgress);
 
-      const text = result.data.text.trim();
       setRawText(text);
       setDraft(createDraftFromText(text));
       setStatus('success');
     } catch {
       setStatus('error');
+      setProgress(0);
       setError('Не удалось распознать чек. Попробуйте другое изображение или повторите позже.');
     }
   };
 
   const updateDraft = (field: keyof ReceiptDraft) => (event: ChangeEvent<HTMLInputElement>) => {
     setDraft((current) => ({ ...current, [field]: event.target.value }));
+    setSavedMessage('');
+  };
+
+  const handleSaveReceipt = () => {
+    if (!user || !canSaveReceipt) {
+      return;
+    }
+
+    const receipt = addReceipt({
+      userId: user.id,
+      merchant: draft.merchant,
+      date: draft.date,
+      amount: amountValue,
+      category: draft.category,
+      rawText,
+      status: 'success',
+    });
+
+    setSavedMessage(`Чек "${receipt.merchant}" сохранён.`);
   };
 
   const handleReset = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
     setSelectedFile(null);
     setPreviewUrl(null);
     setStatus('idle');
@@ -122,16 +162,17 @@ export const ScannerPage = () => {
     setRawText('');
     setDraft(initialDraft);
     setError('');
+    setSavedMessage('');
   };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <header>
         <h1 className="text-3xl font-bold">
-          <span className="text-white">OCR</span>{' '}
-          <span className="text-light">сканер</span>
+          <span className="text-white">OCR</span> <span className="text-light">сканер</span>
         </h1>
         <p className="mt-3 max-w-2xl text-text-muted">
+          Загрузите изображение чека, распознайте текст через Tesseract.js и сохраните результат в свою историю.
         </p>
       </header>
 
@@ -156,12 +197,12 @@ export const ScannerPage = () => {
                 ) : (
                   <ScanText size={18} />
                 )}
-                Распознать чек
+                Сканировать
               </button>
               <button
                 type="button"
                 onClick={handleReset}
-                disabled={status === 'processing' && !selectedFile}
+                disabled={status === 'processing'}
                 className="smooth-transition flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-elevated px-4 font-semibold text-text-muted hover:text-white disabled:pointer-events-none disabled:opacity-50"
               >
                 <RotateCcw size={18} />
@@ -173,10 +214,10 @@ export const ScannerPage = () => {
               <div className="mt-5">
                 <div className="mb-2 flex justify-between text-sm">
                   <span className="text-text-muted">Распознавание текста</span>
-                  <span className="font-semibold text-white">{progressPercent}%</span>
+                  <span className="font-semibold text-white">{progress}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-elevated">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${progressPercent}%` }} />
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
                 </div>
               </div>
             )}
@@ -205,7 +246,7 @@ export const ScannerPage = () => {
             <div className="mb-6">
               <h2 className="text-xl font-bold text-white">Результат распознавания</h2>
               <p className="mt-2 text-sm leading-6 text-text-muted">
-                Поля заполняются автоматически после OCR. Исправьте значения вручную, если распознавание ошиблось.
+                Поля заполняются автоматически после OCR. Исправьте значения вручную перед сохранением чека.
               </p>
             </div>
 
@@ -237,13 +278,21 @@ export const ScannerPage = () => {
               />
             </div>
 
+            {savedMessage && (
+              <div className="mt-5 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
+                <CheckCircle2 size={18} />
+                {savedMessage}
+              </div>
+            )}
+
             <button
               type="button"
-              disabled={status !== 'success'}
+              onClick={handleSaveReceipt}
+              disabled={!canSaveReceipt}
               className="smooth-transition mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 font-semibold text-white hover:bg-light disabled:pointer-events-none disabled:opacity-50"
             >
               <Save size={18} />
-              Подготовить чек
+              Сохранить чек
             </button>
           </form>
 
@@ -253,6 +302,27 @@ export const ScannerPage = () => {
               {rawText || 'Здесь появится сырой текст после распознавания изображения.'}
             </div>
           </div>
+
+          {receipts.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-surface">
+              <div className="border-b border-white/[0.07] p-5">
+                <h2 className="text-lg font-bold text-white">Сохранённые чеки</h2>
+                <p className="mt-1 text-sm text-text-muted">
+                  Zustand-стор обновляет этот список сразу после сохранения.
+                </p>
+              </div>
+              {receipts.map((receipt) => (
+                <ReceiptRow
+                  key={receipt.id}
+                  merchant={receipt.merchant}
+                  date={receipt.date}
+                  amount={receipt.amount}
+                  status={receipt.status}
+                  category={receipt.category}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
